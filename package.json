@@ -1,6 +1,6 @@
 {
   "name": "mcp-playwright-test",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A Model Context Protocol (MCP) server for automating Playwright tests",
   "main": "dist/index.js",
   "module": "dist/index.mjs",

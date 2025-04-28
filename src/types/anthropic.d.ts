@@ -6,7 +6,7 @@
  * @LastEditTime: 2025-04-28
  * @Description:
  */
-declare module "@anthropic-ai/sdk" {
+declare module '@anthropic-ai/sdk' {
   export class Anthropic {
     constructor(options: { apiKey: string });
 

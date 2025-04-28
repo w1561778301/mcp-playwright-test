@@ -19,21 +19,21 @@
  * @module PlaywrightMCP
  */
 
-import { createPlaywrightMCPServer } from "./mcp/server";
+import { createPlaywrightMCPServer } from './mcp/server';
 
 // 导出服务
-export * from "./services";
+export * from './services';
 
 // 导出类型定义
-export * as CoreTypes from "./types/core";
-export * as MCPTypes from "./types/mcp";
+export * as CoreTypes from './types/core';
+export * as MCPTypes from './types/mcp';
 
 /**
  * 创建MCP服务器实例
  * @param options 服务器配置选项
  * @returns MCP服务器实例
  */
-export function createMCPServer(options: { port?: number; transport?: "http" } = {}) {
+export function createMCPServer(options: { port?: number; transport?: 'http' } = {}) {
   return createPlaywrightMCPServer(options);
 }
 

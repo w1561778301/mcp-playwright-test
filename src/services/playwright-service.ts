@@ -8,12 +8,12 @@ import {
   ConsoleMessage,
   Request,
   Response,
-} from "playwright";
-import * as fs from "fs";
-import * as path from "path";
+} from 'playwright';
+import * as fs from 'fs';
+import * as path from 'path';
 
 export interface BrowserOptions {
-  browserType?: "chromium" | "firefox" | "webkit";
+  browserType?: 'chromium' | 'firefox' | 'webkit';
   headless?: boolean;
   slowMo?: number;
   viewport?: {
@@ -70,19 +70,19 @@ export class PlaywrightService {
 
     try {
       // 设置默认选项
-      const browserType = options.browserType || "chromium";
+      const browserType = options.browserType || 'chromium';
       const headless = options.headless !== undefined ? options.headless : false;
       const slowMo = options.slowMo || 0;
 
       // 选择浏览器类型
       switch (browserType) {
-        case "firefox":
+        case 'firefox':
           this.browser = await firefox.launch({
             headless,
             slowMo,
           });
           break;
-        case "webkit":
+        case 'webkit':
           this.browser = await webkit.launch({
             headless,
             slowMo,
@@ -105,15 +105,15 @@ export class PlaywrightService {
       this.page = await this.context.newPage();
 
       // 监听控制台消息
-      this.page.on("console", this.handleConsoleMessage.bind(this));
+      this.page.on('console', this.handleConsoleMessage.bind(this));
 
       // 监听网络请求
-      this.page.on("request", this.handleNetworkRequest.bind(this));
-      this.page.on("response", this.handleNetworkResponse.bind(this));
+      this.page.on('request', this.handleNetworkRequest.bind(this));
+      this.page.on('response', this.handleNetworkResponse.bind(this));
 
       console.log(`Browser (${browserType}) launched successfully`);
     } catch (error) {
-      console.error("Error launching browser:", error);
+      console.error('Error launching browser:', error);
       throw new Error(`Failed to launch browser: ${(error as Error).message}`);
     }
   }
@@ -128,10 +128,10 @@ export class PlaywrightService {
         this.browser = null;
         this.context = null;
         this.page = null;
-        console.log("Browser closed successfully");
+        console.log('Browser closed successfully');
       }
     } catch (error) {
-      console.error("Error closing browser:", error);
+      console.error('Error closing browser:', error);
       throw new Error(`Failed to close browser: ${(error as Error).message}`);
     }
   }
@@ -197,14 +197,14 @@ export class PlaywrightService {
    */
   async captureScreenshot(outputPath?: string): Promise<string> {
     if (!this.page) {
-      throw new Error("Browser page not initialized. Call launchBrowser() first.");
+      throw new Error('Browser page not initialized. Call launchBrowser() first.');
     }
 
     try {
       // 如果没有指定输出路径，使用时间戳创建一个
       if (!outputPath) {
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        outputPath = path.join(process.cwd(), "screenshots", `screenshot-${timestamp}.png`);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        outputPath = path.join(process.cwd(), 'screenshots', `screenshot-${timestamp}.png`);
       }
 
       // 确保目录存在
@@ -219,7 +219,7 @@ export class PlaywrightService {
 
       return outputPath;
     } catch (error) {
-      console.error("Error capturing screenshot:", error);
+      console.error('Error capturing screenshot:', error);
       throw new Error(`Failed to capture screenshot: ${(error as Error).message}`);
     }
   }
@@ -240,7 +240,7 @@ export class PlaywrightService {
         columnNumber: location.columnNumber,
       },
       timestamp: new Date().toISOString(),
-      stack: message.type() === "error" ? message.text() : undefined,
+      stack: message.type() === 'error' ? message.text() : undefined,
     };
 
     this.consoleLogs.push(consoleMessage);
@@ -281,7 +281,7 @@ export class PlaywrightService {
 
     // 尝试根据URL和方法匹配请求
     const networkRequest = this.networkRequests.find(
-      (req) => req.url === request.url() && req.method === request.method()
+      req => req.url === request.url() && req.method === request.method()
     );
 
     if (networkRequest) {
@@ -290,23 +290,25 @@ export class PlaywrightService {
         status: response.status(),
         statusText: response.statusText(),
         headers: response.headers(),
-        mimeType: response.headers()["content-type"],
+        mimeType: response.headers()['content-type'],
         timestamp: Date.now(),
       };
 
       // 尝试获取响应体（只获取文本和JSON等文本类型的响应）
       try {
-        const contentType = response.headers()["content-type"] || "";
+        const contentType = response.headers()['content-type'] || '';
         if (
-          contentType.includes("json") ||
-          contentType.includes("text") ||
-          contentType.includes("javascript") ||
-          contentType.includes("xml")
+          contentType.includes('json') ||
+          contentType.includes('text') ||
+          contentType.includes('javascript') ||
+          contentType.includes('xml')
         ) {
           networkRequest.response.body = await response.text();
         }
       } catch (error) {
-        console.warn(`Could not get response body for ${response.url()}: ${(error as Error).message}`);
+        console.warn(
+          `Could not get response body for ${response.url()}: ${(error as Error).message}`
+        );
       }
 
       // 打印到控制台

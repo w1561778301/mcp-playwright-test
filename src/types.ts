@@ -35,7 +35,7 @@ export interface GitCredentials {
 
 // Browser Module Options
 export interface BrowserOptions {
-  browserType?: "chromium" | "firefox" | "webkit";
+  browserType?: 'chromium' | 'firefox' | 'webkit';
   headless?: boolean;
   slowMo?: number;
   viewport?: { width: number; height: number };
@@ -46,7 +46,7 @@ export interface BrowserOptions {
 export interface MCPOptions {
   port?: number;
   visionMode?: boolean;
-  transport?: "http" | "sse" | "ws";
+  transport?: 'http' | 'sse' | 'ws';
 }
 
 // Test Generation Options
@@ -62,7 +62,7 @@ export interface TestGenerationOptions {
 
 // Reporting Options
 export interface ReportingOptions {
-  outputFormat?: "json" | "html" | "markdown";
+  outputFormat?: 'json' | 'html' | 'markdown';
   outputPath?: string;
   includeScreenshots?: boolean;
   includeConsoleMessages?: boolean;
@@ -87,7 +87,7 @@ export interface TestCase {
 }
 
 export interface TestStep {
-  action: "navigate" | "click" | "fill" | "check" | "select" | "custom";
+  action: 'navigate' | 'click' | 'fill' | 'check' | 'select' | 'custom';
   target?: string;
   value?: string;
   customScript?: string;
@@ -196,9 +196,9 @@ export interface APITestCase {
 }
 
 export interface APIAssertion {
-  type: "status" | "header" | "body";
+  type: 'status' | 'header' | 'body';
   target: string;
-  operator: "=" | "!=" | ">" | "<" | "contains" | "matches";
+  operator: '=' | '!=' | '>' | '<' | 'contains' | 'matches';
   value: any;
 }
 
@@ -250,7 +250,7 @@ export interface PlaywrightTestSDK {
 // ... existing code ...
 
 // 接口文档格式
-export type DocumentFormat = "openapi" | "swagger" | "postman" | "apifox" | "auto";
+export type DocumentFormat = 'openapi' | 'swagger' | 'postman' | 'apifox' | 'auto';
 
 // 接口解析选项
 export interface APIDocParserOptions {
@@ -285,14 +285,14 @@ export interface APITestingOptions {
   // 新增属性
   docFormat?: DocumentFormat;
   mockDataOptions?: MockDataOptions;
-  mockServerType?: "simple" | "msw";
+  mockServerType?: 'simple' | 'msw';
   validateResponses?: boolean; // 是否验证响应与文档一致性
 }
 
 // 模拟服务器配置
 export interface MockServerConfig {
   port: number;
-  type: "simple" | "msw";
+  type: 'simple' | 'msw';
   baseUrl: string;
   cors?: boolean;
   delay?: number;

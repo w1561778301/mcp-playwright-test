@@ -3,7 +3,7 @@
  */
 
 // Import actual types available in the types.ts file
-import { APITestCase } from "../types";
+import { APITestCase } from '../types';
 
 // Define locally required types that don't exist in ../types
 export interface SDKOptions {
@@ -72,7 +72,7 @@ export interface ResourceManager {
 /**
  * MCP Server transport type
  */
-export type MCPTransport = "http" | "ws" | "sse";
+export type MCPTransport = 'http' | 'ws' | 'sse';
 
 /**
  * MCP Server configuration options
@@ -142,7 +142,7 @@ export interface LLMOptions {
    * LLM provider to use
    * @default 'openai'
    */
-  provider?: "openai" | "azure" | "anthropic" | "local";
+  provider?: 'openai' | 'azure' | 'anthropic' | 'local';
 
   /**
    * API key for the LLM provider
@@ -292,7 +292,7 @@ export interface TestGenerationRequest {
   /**
    * Test generation source
    */
-  source: "text" | "document" | "url" | "code";
+  source: 'text' | 'document' | 'url' | 'code';
 
   /**
    * Source content (requirements text, file path, URL, or code)
@@ -302,7 +302,7 @@ export interface TestGenerationRequest {
   /**
    * Test type to generate
    */
-  testType: "ui" | "api" | "auto";
+  testType: 'ui' | 'api' | 'auto';
 
   /**
    * Additional options for test generation

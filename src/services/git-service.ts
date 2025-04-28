@@ -1,8 +1,8 @@
-import simpleGit, { SimpleGit } from "simple-git";
-import * as path from "path";
-import * as fs from "fs";
-import * as os from "os";
-import { gitConfig, projectConfig } from "../utils/config";
+import simpleGit, { SimpleGit } from 'simple-git';
+import * as path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
+import { gitConfig, projectConfig } from '../utils/config';
 
 export interface GitCredentials {
   username?: string;
@@ -24,7 +24,8 @@ export class GitService {
 
   constructor(workDir?: string) {
     // 如果没有指定工作目录，先尝试从环境变量获取，然后使用系统临时目录
-    this.workDir = workDir || projectConfig.codePath || path.join(os.tmpdir(), "playwright-mcp-test");
+    this.workDir =
+      workDir || projectConfig.codePath || path.join(os.tmpdir(), 'playwright-mcp-test');
 
     // 确保工作目录存在
     if (!fs.existsSync(this.workDir)) {
@@ -41,7 +42,10 @@ export class GitService {
    * @param options 仓库选项
    * @returns 项目路径
    */
-  async cloneRepository(repositoryUrl: string, options: GitRepositoryOptions = {}): Promise<{ projectPath: string }> {
+  async cloneRepository(
+    repositoryUrl: string,
+    options: GitRepositoryOptions = {}
+  ): Promise<{ projectPath: string }> {
     try {
       // 从URL中获取仓库名称
       const repoName = this.getRepositoryNameFromUrl(repositoryUrl);
@@ -54,7 +58,7 @@ export class GitService {
         fs.rmSync(projectPath, { recursive: true, force: true });
       }
 
-      const cloneOptions: Record<string, any> = {};
+      const cloneOptions: Record<string, unknown> = {};
 
       // 设置克隆深度 - 从选项或环境变量获取
       const depth = options.depth || gitConfig.depth;
@@ -84,9 +88,11 @@ export class GitService {
       if (depth) console.log(`克隆深度: ${depth}`);
       if (branch) console.log(`指定分支: ${branch}`);
       if (username) console.log(`使用认证: ${username}`);
-
+      const cloneArgs: string[] = [];
+      if (depth) cloneArgs.push(`--depth=${depth}`);
+      if (branch) cloneArgs.push(`--branch=${branch}`);
       // 克隆仓库
-      await simpleGit({ binary: gitConfig.path }).clone(repositoryUrl, projectPath, cloneOptions);
+      await simpleGit({ binary: gitConfig.path }).clone(repositoryUrl, projectPath, cloneArgs);
 
       // 初始化Git实例
       this.git = simpleGit({ binary: gitConfig.path, baseDir: projectPath });
@@ -96,7 +102,7 @@ export class GitService {
 
       return { projectPath };
     } catch (error) {
-      console.error("Error cloning repository:", error);
+      console.error('Error cloning repository:', error);
       throw new Error(`Failed to clone repository: ${(error as Error).message}`);
     }
   }
@@ -106,7 +112,9 @@ export class GitService {
    * @param projectPath 本地项目路径
    * @returns 项目路径
    */
-  async useLocalProject(projectPath: string = projectConfig.codePath): Promise<{ projectPath: string }> {
+  async useLocalProject(
+    projectPath: string = projectConfig.codePath
+  ): Promise<{ projectPath: string }> {
     try {
       // 处理相对路径
       if (!path.isAbsolute(projectPath)) {
@@ -137,7 +145,7 @@ export class GitService {
 
       return { projectPath };
     } catch (error) {
-      console.error("Error using local project:", error);
+      console.error('Error using local project:', error);
       throw new Error(`Failed to use local project: ${(error as Error).message}`);
     }
   }
@@ -158,10 +166,10 @@ export class GitService {
    */
   private getRepositoryNameFromUrl(url: string): string {
     // 移除.git后缀
-    const withoutGit = url.replace(/\.git$/, "");
+    const withoutGit = url.replace(/\.git$/, '');
 
     // 获取最后一部分作为名称
-    const parts = withoutGit.split("/");
+    const parts = withoutGit.split('/');
     let repoName = parts[parts.length - 1];
 
     // 处理特殊情况

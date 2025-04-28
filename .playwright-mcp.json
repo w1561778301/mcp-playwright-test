@@ -6,7 +6,7 @@
       "env": {
         "CODE_PATH": ".",
         "SIMPLE_GIT_PATH": "git",
-        "SIMPLE_GIT_BRANCH": "main",
+        "SIMPLE_GIT_BRANCH": "master",
         "SIMPLE_GIT_DEPTH": 1,
         "SIMPLE_GIT_USERNAME": "Owen.wang",
         "SIMPLE_GIT_PASSWORD": "123456",

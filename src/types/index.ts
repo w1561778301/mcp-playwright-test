@@ -12,7 +12,7 @@ export interface GitRepositoryOptions {
 
 // Playwright Service Types
 export interface BrowserOptions {
-  browserType?: "chromium" | "firefox" | "webkit";
+  browserType?: 'chromium' | 'firefox' | 'webkit';
   headless?: boolean;
   width?: number;
   height?: number;

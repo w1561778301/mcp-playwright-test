@@ -10,8 +10,8 @@
 /**
  * Model Context Protocol SDK 类型声明
  */
-declare module "@modelcontextprotocol/sdk" {
-  import { ZodType, ZodObject } from "zod";
+declare module '@modelcontextprotocol/sdk' {
+  import { ZodType, ZodObject } from 'zod';
 
   export interface ServerOptions {
     name: string;
@@ -32,11 +32,11 @@ declare module "@modelcontextprotocol/sdk" {
   export interface ServerTransportOptions {
     port?: number;
     baseUrl?: string;
-    format?: "json" | "binary";
+    format?: 'json' | 'binary';
   }
 
   // Re-export Zod for schema validation
-  export const z: typeof import("zod").z;
+  export const z: typeof import('zod').z;
 
   // Server class
   export class Server {
@@ -52,8 +52,16 @@ declare module "@modelcontextprotocol/sdk" {
     constructor(options: ServerOptions);
     connect(transport: any): Promise<void>;
     close(): Promise<void>;
-    tool(name: string, paramSchema: Record<string, any>, handler: (params: any) => Promise<any>): any;
-    resource(name: string, template: string | ResourceTemplate, handler: (uri: URL, params: any) => Promise<any>): any;
+    tool(
+      name: string,
+      paramSchema: Record<string, any>,
+      handler: (params: any) => Promise<any>
+    ): any;
+    resource(
+      name: string,
+      template: string | ResourceTemplate,
+      handler: (uri: URL, params: any) => Promise<any>
+    ): any;
     prompt(name: string, paramSchema: Record<string, any>, handler: (params: any) => any): any;
   }
 

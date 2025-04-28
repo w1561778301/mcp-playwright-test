@@ -81,7 +81,17 @@ export interface ApiTestOptions {
 export interface ApiAssertion {
   type: 'status' | 'header' | 'body' | 'jsonPath' | 'responseTime';
   path?: string;
-  operator: '=' | '!=' | '>' | '<' | '>=' | '<=' | 'contains' | 'startsWith' | 'endsWith' | 'matches';
+  operator:
+    | '='
+    | '!='
+    | '>'
+    | '<'
+    | '>='
+    | '<='
+    | 'contains'
+    | 'startsWith'
+    | 'endsWith'
+    | 'matches';
   value: any;
 }
 

@@ -1,8 +1,8 @@
-import * as fs from "fs";
-import * as path from "path";
-import { randomUUID } from "crypto";
-import { PlaywrightService } from "./playwright-service";
-import * as core from "../types/core";
+import * as fs from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
+import { PlaywrightService } from './playwright-service';
+import * as core from '../types/core';
 
 // 扩展TestCaseStep以适应当前服务的需求
 interface ExtendedTestCaseStep extends core.TestCaseStep {
@@ -71,13 +71,13 @@ export class TestExecutionService {
     this.playwrightService = playwrightService;
 
     // 初始化存储目录
-    this.storageDir = storageDir || path.join(process.cwd(), "test-results");
+    this.storageDir = storageDir || path.join(process.cwd(), 'test-results');
     if (!fs.existsSync(this.storageDir)) {
       fs.mkdirSync(this.storageDir, { recursive: true });
     }
 
     // 创建截图目录
-    const screenshotsDir = path.join(this.storageDir, "screenshots");
+    const screenshotsDir = path.join(this.storageDir, 'screenshots');
     if (!fs.existsSync(screenshotsDir)) {
       fs.mkdirSync(screenshotsDir, { recursive: true });
     }
@@ -94,13 +94,13 @@ export class TestExecutionService {
   async runTests(testSuiteId: string): Promise<string> {
     try {
       // 加载测试套件
-      const testSuitePath = path.join(process.cwd(), "test-suites", `${testSuiteId}.json`);
+      const testSuitePath = path.join(process.cwd(), 'test-suites', `${testSuiteId}.json`);
 
       if (!fs.existsSync(testSuitePath)) {
         throw new Error(`Test suite not found: ${testSuiteId}`);
       }
 
-      const testSuiteContent = fs.readFileSync(testSuitePath, "utf-8");
+      const testSuiteContent = fs.readFileSync(testSuitePath, 'utf-8');
       const testSuite = JSON.parse(testSuiteContent) as core.TestSuite;
 
       // 确保浏览器已启动
@@ -132,39 +132,42 @@ export class TestExecutionService {
           // 执行测试用例的每个步骤
           for (const step of testCase.steps) {
             const extendedStep = step as ExtendedTestCaseStep;
-            console.log(`- Step: ${step.action} ${extendedStep.target || step.selector || ""}`);
+            console.log(`- Step: ${step.action} ${extendedStep.target || step.selector || ''}`);
 
             const page = this.playwrightService.getPage();
             if (!page) {
-              throw new Error("Browser page not initialized");
+              throw new Error('Browser page not initialized');
             }
 
             // 根据步骤类型执行不同的操作
             switch (step.action) {
-              case "navigate":
-                await page.goto(extendedStep.target || step.selector || "");
+              case 'navigate':
+                await page.goto(extendedStep.target || step.selector || '');
                 break;
 
-              case "click":
-                await page.click(extendedStep.target || step.selector || "");
+              case 'click':
+                await page.click(extendedStep.target || step.selector || '');
                 break;
 
-              case "fill":
-                await page.fill(extendedStep.target || step.selector || "", step.value || "");
+              case 'fill':
+                await page.fill(extendedStep.target || step.selector || '', step.value || '');
                 break;
 
-              case "check":
-                await page.check(extendedStep.target || step.selector || "");
+              case 'check':
+                await page.check(extendedStep.target || step.selector || '');
                 break;
 
-              case "select":
-                await page.selectOption(extendedStep.target || step.selector || "", step.value || "");
+              case 'select':
+                await page.selectOption(
+                  extendedStep.target || step.selector || '',
+                  step.value || ''
+                );
                 break;
 
-              case "custom":
+              case 'custom':
                 if (extendedStep.customScript || step.value) {
                   // 执行自定义JavaScript
-                  const script = extendedStep.customScript || step.value || "";
+                  const script = extendedStep.customScript || step.value || '';
                   const result = await page.evaluate(script);
                   if (!result) {
                     throw new Error(`Custom assertion failed: ${script}`);
@@ -172,7 +175,7 @@ export class TestExecutionService {
                 }
                 break;
 
-              case "request":
+              case 'request':
                 // API请求测试处理
                 if (step.value) {
                   try {
@@ -195,7 +198,7 @@ export class TestExecutionService {
                         };
                       },
                       {
-                        url: extendedStep.target || step.selector || "https://example.com", // 提供默认值避免undefined
+                        url: extendedStep.target || step.selector || 'https://example.com', // 提供默认值避免undefined
                         method: requestData.method,
                         headers: requestData.headers,
                         body: requestData.body,
@@ -203,8 +206,13 @@ export class TestExecutionService {
                     );
 
                     // 验证状态码
-                    if (requestData.expectedStatus && response.status !== requestData.expectedStatus) {
-                      throw new Error(`Expected status ${requestData.expectedStatus}, got ${response.status}`);
+                    if (
+                      requestData.expectedStatus &&
+                      response.status !== requestData.expectedStatus
+                    ) {
+                      throw new Error(
+                        `Expected status ${requestData.expectedStatus}, got ${response.status}`
+                      );
                     }
 
                     // 验证响应体（如果期望的响应体存在）
@@ -214,7 +222,7 @@ export class TestExecutionService {
                         // 这里应该有更复杂的响应体验证逻辑
                         // 目前只是简单地验证响应体不为空
                         if (!responseBody) {
-                          throw new Error("Response body is empty");
+                          throw new Error('Response body is empty');
                         }
                       } catch (error) {
                         throw new Error(`Invalid JSON response: ${response.body}`);
@@ -235,7 +243,11 @@ export class TestExecutionService {
 
             // 如果需要截图，则捕获当前步骤的截图
             if ((step as ExtendedTestCaseStep).screenshot) {
-              const screenshotPath = path.join(this.storageDir, "screenshots", `${testCase.id}_${step.id}.png`);
+              const screenshotPath = path.join(
+                this.storageDir,
+                'screenshots',
+                `${testCase.id}_${step.id}.png`
+              );
               await page.screenshot({ path: screenshotPath });
               screenshots.push(screenshotPath);
             }
@@ -248,12 +260,16 @@ export class TestExecutionService {
           try {
             const page = this.playwrightService.getPage();
             if (page) {
-              const screenshotPath = path.join(this.storageDir, "screenshots", `${testCase.id}_failure.png`);
+              const screenshotPath = path.join(
+                this.storageDir,
+                'screenshots',
+                `${testCase.id}_failure.png`
+              );
               await page.screenshot({ path: screenshotPath });
               screenshots.push(screenshotPath);
             }
           } catch (screenshotError) {
-            console.error("Error capturing failure screenshot:", screenshotError);
+            console.error('Error capturing failure screenshot:', screenshotError);
           }
 
           console.error(`Test failed: ${(error as Error).message}`);
@@ -274,7 +290,7 @@ export class TestExecutionService {
 
       // 计算总体测试结果
       const endTime = new Date();
-      const allPassed = testCaseResults.every((result) => result.passed);
+      const allPassed = testCaseResults.every(result => result.passed);
 
       // 获取网络请求和控制台消息
       const networkRequests = await this.playwrightService.getNetworkRequests();
@@ -299,7 +315,7 @@ export class TestExecutionService {
 
       return resultId;
     } catch (error) {
-      console.error("Error running tests:", error);
+      console.error('Error running tests:', error);
       throw new Error(`Failed to run tests: ${(error as Error).message}`);
     }
   }
@@ -334,7 +350,7 @@ export class TestExecutionService {
       // 确保浏览器已启动
       const browserIsRunning = !!this.playwrightService.getPage();
       if (!browserIsRunning) {
-        throw new Error("Browser is not running. Launch browser first.");
+        throw new Error('Browser is not running. Launch browser first.');
       }
 
       // 创建错误报告ID
@@ -346,8 +362,8 @@ export class TestExecutionService {
 
       // 处理前端错误（从控制台日志中提取）
       const frontendErrors = consoleMessages
-        .filter((message) => message.type === "error")
-        .map((message) => {
+        .filter(message => message.type === 'error')
+        .map(message => {
           const frontendError: FrontendError = {
             message: message.text,
             timestamp: message.timestamp,
@@ -370,8 +386,8 @@ export class TestExecutionService {
 
       // 处理后端错误（从网络请求中提取）
       const backendErrors = networkRequests
-        .filter((request) => request.response && request.response.status >= 400)
-        .map((request) => {
+        .filter(request => request.response && request.response.status >= 400)
+        .map(request => {
           const backendError: BackendError = {
             apiEndpoint: request.url,
             method: request.method,
@@ -416,7 +432,7 @@ export class TestExecutionService {
 
       return reportId;
     } catch (error) {
-      console.error("Error generating error report:", error);
+      console.error('Error generating error report:', error);
       throw new Error(`Failed to generate error report: ${(error as Error).message}`);
     }
   }
@@ -447,20 +463,20 @@ export class TestExecutionService {
       const files = fs.readdirSync(this.storageDir);
 
       for (const file of files) {
-        if (file.startsWith("result_") && file.endsWith(".json")) {
+        if (file.startsWith('result_') && file.endsWith('.json')) {
           const filePath = path.join(this.storageDir, file);
-          const fileContent = fs.readFileSync(filePath, "utf-8");
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
           const testResults = JSON.parse(fileContent) as TestResults;
           this.testResults.set(testResults.id, testResults);
-        } else if (file.startsWith("error_") && file.endsWith(".json")) {
+        } else if (file.startsWith('error_') && file.endsWith('.json')) {
           const filePath = path.join(this.storageDir, file);
-          const fileContent = fs.readFileSync(filePath, "utf-8");
+          const fileContent = fs.readFileSync(filePath, 'utf-8');
           const errorReport = JSON.parse(fileContent) as ErrorReport;
           this.errorReports.set(errorReport.id, errorReport);
         }
       }
     } catch (error) {
-      console.warn("Error loading test results:", error);
+      console.warn('Error loading test results:', error);
       // 继续执行，即使加载失败
     }
   }

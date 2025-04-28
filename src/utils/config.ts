@@ -77,7 +77,7 @@ export const gitConfig = {
    */
   get password(): string | undefined {
     return getConfig('SIMPLE_GIT_PASSWORD', undefined);
-  }
+  },
 };
 
 /**
@@ -110,7 +110,7 @@ export const projectConfig = {
    */
   get apiKey(): string | undefined {
     return getConfig('API_KEY', undefined);
-  }
+  },
 };
 
 /**
@@ -150,7 +150,7 @@ export const browserConfig = {
    */
   get slowMo(): number {
     return getConfig('BROWSER_SLOW_MO', 0);
-  }
+  },
 };
 
 /**
@@ -176,12 +176,12 @@ export const testConfig = {
    */
   get retries(): number {
     return getConfig('TEST_RETRIES', 1);
-  }
+  },
 };
 
 export default {
   git: gitConfig,
   project: projectConfig,
   browser: browserConfig,
-  test: testConfig
+  test: testConfig,
 };

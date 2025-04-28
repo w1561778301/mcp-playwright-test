@@ -1,4 +1,4 @@
-declare module "@modelcontextprotocol/sdk/server/mcp.js" {
+declare module '@modelcontextprotocol/sdk/server/mcp.js' {
   export class McpServer {
     constructor(options: { name: string; version: string });
 
@@ -28,13 +28,13 @@ declare module "@modelcontextprotocol/sdk/server/mcp.js" {
   }
 }
 
-declare module "@modelcontextprotocol/sdk/server/stdio.js" {
+declare module '@modelcontextprotocol/sdk/server/stdio.js' {
   export class StdioServerTransport {
     constructor();
   }
 }
 
-declare module "@modelcontextprotocol/sdk/server/streamableHttp.js" {
+declare module '@modelcontextprotocol/sdk/server/streamableHttp.js' {
   export class StreamableHTTPServerTransport {
     constructor(options: {
       sessionIdGenerator: () => string;
@@ -47,16 +47,16 @@ declare module "@modelcontextprotocol/sdk/server/streamableHttp.js" {
   }
 }
 
-declare module "zod" {
+declare module 'zod' {
   export const z: {
     string(): {
       url(): any;
       optional(): any;
     };
-    boolean(): { optional(): any; };
-    number(): { optional(): any; };
-    enum(values: string[]): { optional(): any; };
-    object(schema: Record<string, any>): { optional(): any; };
+    boolean(): { optional(): any };
+    number(): { optional(): any };
+    enum(values: string[]): { optional(): any };
+    object(schema: Record<string, any>): { optional(): any };
     any(): any;
   };
 }

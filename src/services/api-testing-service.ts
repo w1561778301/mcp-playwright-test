@@ -1,22 +1,84 @@
-import * as fs from "fs";
-import * as path from "path";
-import { randomUUID } from "crypto";
-import * as core from "../types/core";
-import { TestGeneratorService } from "./test-generator-service";
-import { projectConfig, testConfig } from "../utils/config";
+import * as fs from 'fs';
+import * as path from 'path';
+import { randomUUID } from 'crypto';
+import * as core from '../types/core';
+import { TestGeneratorService } from './test-generator-service';
+import { projectConfig, testConfig } from '../utils/config';
 
 // 导出ApiTestingService中使用的类型
-export type TestType = "ui" | "api";
+export type TestType = 'ui' | 'api';
+
+// MCP客户端接口
+interface MCPClient {
+  callTool(params: { name: string; arguments: Record<string, unknown> }): Promise<{
+    content?: Array<{ text: string }>;
+    [key: string]: unknown;
+  }>;
+}
+
+// OpenAPI规范相关接口
+interface OpenAPISpec {
+  info?: {
+    title?: string;
+    version?: string;
+    description?: string;
+  };
+  paths?: Record<string, Record<string, OpenAPIOperation>>;
+  title?: string;
+  version?: string;
+  description?: string;
+  openapi?: string;
+  swagger?: string;
+  apifoxExtensions?: unknown;
+}
+
+interface OpenAPIOperation {
+  summary?: string;
+  description?: string;
+  operationId?: string;
+  parameters?: Array<{
+    name: string;
+    in: string;
+    description?: string;
+    required?: boolean;
+  }>;
+  requestBody?: {
+    required?: boolean;
+    content?: Record<string, unknown>;
+  };
+  responses?: Record<
+    string,
+    {
+      description?: string;
+    }
+  >;
+}
+
+// API测试请求数据接口
+interface ApiRequestData {
+  method?: string;
+  headers?: Record<string, string>;
+  body?: unknown;
+  expectedStatus?: number;
+  expectedResponse?: unknown;
+}
+
+// API模拟响应接口
+interface ApiMockResponse {
+  statusCode: number;
+  statusText?: string;
+  response: unknown;
+}
 
 export interface ApiEndpoint {
   path: string;
   method: string;
   summary: string;
   description?: string;
-  requestSchema?: any;
-  responseSchema?: any;
-  requestExamples?: any[];
-  responseExamples?: any[];
+  requestSchema?: unknown;
+  responseSchema?: unknown;
+  requestExamples?: unknown[];
+  responseExamples?: unknown[];
 }
 
 export interface ApiSpec {
@@ -34,8 +96,8 @@ export interface ApiTestCaseResult {
   method: string;
   status: number;
   statusText: string;
-  requestPayload?: any;
-  responseBody?: any;
+  requestPayload: unknown;
+  responseBody: unknown;
   duration: number;
   errors?: Error[];
 }
@@ -50,21 +112,22 @@ export interface ApiTestResult {
   duration: number;
 }
 
-export type ApiDocFormat = "openapi" | "swagger" | "apifox" | "auto";
+export type ApiDocFormat = 'openapi' | 'swagger' | 'apifox' | 'auto';
 
 export class ApiTestingService {
   private apiSpecs: Map<string, ApiSpec> = new Map();
   private testResults: Map<string, ApiTestResult> = new Map();
-  private mockEndpoints: Map<string, any> = new Map();
+  private mockEndpoints: Map<string, ApiMockResponse> = new Map();
   private storageDir: string;
   private testGenerator: TestGeneratorService;
-  private mcpEnabled: boolean = false;
-  private mcpClient: any = null;
+  private mcpEnabled = false;
+  private mcpClient: MCPClient | null = null;
   private baseApiUrl: string;
 
-  constructor(storageDir?: string, mcpClient?: any) {
+  constructor(storageDir?: string, mcpClient?: MCPClient) {
     // 初始化存储目录，使用配置或默认值
-    this.storageDir = storageDir || testConfig.storageDir || path.join(process.cwd(), "api-testing");
+    this.storageDir =
+      storageDir || testConfig.storageDir || path.join(process.cwd(), 'api-testing');
     if (!fs.existsSync(this.storageDir)) {
       fs.mkdirSync(this.storageDir, { recursive: true });
     }
@@ -89,7 +152,7 @@ export class ApiTestingService {
    * 设置MCP客户端
    * @param client MCP客户端实例
    */
-  public setMCPClient(client: any): void {
+  public setMCPClient(client: MCPClient): void {
     this.mcpClient = client;
     this.mcpEnabled = !!client;
     this.testGenerator.setMCPClient(client);
@@ -123,10 +186,10 @@ export class ApiTestingService {
       }
 
       console.log(`从API规范生成测试用例: ${apiSpecPath}`);
-      const apiSpec = fs.readFileSync(apiSpecPath, "utf-8");
+      const apiSpec = fs.readFileSync(apiSpecPath, 'utf-8');
 
       // Parse OpenAPI spec - simple parsing for demo
-      const specObj = JSON.parse(apiSpec);
+      const specObj = JSON.parse(apiSpec) as OpenAPISpec;
 
       // Build requirements text based on API spec and options
       const requirementsText = this.buildRequirementsFromSpec(
@@ -137,7 +200,7 @@ export class ApiTestingService {
       );
 
       // Generate test cases using the built requirements
-      const result = await this.testGenerator.generateFromText(requirementsText, "api", apiSpec);
+      const result = await this.testGenerator.generateFromText(requirementsText, 'api', apiSpec);
 
       if (!result.success) {
         throw new Error(result.error);
@@ -150,10 +213,10 @@ export class ApiTestingService {
         testCasesCount: result.testCasesCount,
       };
     } catch (error) {
-      console.error("Error generating API tests:", error);
+      console.error('Error generating API tests:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error generating API tests",
+        error: error instanceof Error ? error.message : 'Unknown error generating API tests',
       };
     }
   }
@@ -162,7 +225,7 @@ export class ApiTestingService {
    * Extract list of endpoints covered by the API spec filtering
    */
   private extractEndpointsFromSpec(
-    spec: any,
+    spec: OpenAPISpec,
     options: { endpoints?: string[]; methods?: string[]; generateForAll?: boolean }
   ): string[] {
     try {
@@ -171,15 +234,23 @@ export class ApiTestingService {
 
       for (const path in paths) {
         // Skip if endpoints specified and this one is not included
-        if (options.endpoints && options.endpoints.length > 0 && !options.endpoints.includes(path)) {
+        if (
+          options.endpoints &&
+          options.endpoints.length > 0 &&
+          !options.endpoints.includes(path)
+        ) {
           continue;
         }
 
-        const methods = paths[path];
+        const methods = paths[path] || {};
 
         for (const method in methods) {
           // Skip if methods specified and this one is not included
-          if (options.methods && options.methods.length > 0 && !options.methods.includes(method.toUpperCase())) {
+          if (
+            options.methods &&
+            options.methods.length > 0 &&
+            !options.methods.includes(method.toUpperCase())
+          ) {
             continue;
           }
 
@@ -189,7 +260,7 @@ export class ApiTestingService {
 
       return endpointList;
     } catch (error) {
-      console.error("Error extracting endpoints:", error);
+      console.error('Error extracting endpoints:', error);
       return [];
     }
   }
@@ -198,7 +269,7 @@ export class ApiTestingService {
    * Build requirements text from OpenAPI spec for test generation
    */
   private buildRequirementsFromSpec(
-    spec: any,
+    spec: OpenAPISpec,
     endpoints: string[],
     methods: string[],
     generateForAll: boolean
@@ -206,9 +277,9 @@ export class ApiTestingService {
     try {
       let requirements = `# API Test Requirements\n\n`;
       requirements += `## API Information\n`;
-      requirements += `- Title: ${spec.info?.title || "Unknown API"}\n`;
-      requirements += `- Version: ${spec.info?.version || "Unknown"}\n`;
-      requirements += `- Description: ${spec.info?.description || "No description provided"}\n\n`;
+      requirements += `- Title: ${spec.info?.title || 'Unknown API'}\n`;
+      requirements += `- Version: ${spec.info?.version || 'Unknown'}\n`;
+      requirements += `- Description: ${spec.info?.description || 'No description provided'}\n\n`;
 
       requirements += `## Endpoints to Test\n\n`;
 
@@ -220,7 +291,7 @@ export class ApiTestingService {
           continue;
         }
 
-        const pathItem = paths[path];
+        const pathItem = paths[path] || {};
         requirements += `### Endpoint: ${path}\n\n`;
 
         for (const method in pathItem) {
@@ -232,20 +303,20 @@ export class ApiTestingService {
           const operation = pathItem[method];
 
           requirements += `#### ${method.toUpperCase()}\n`;
-          requirements += `- Summary: ${operation.summary || "No summary"}\n`;
-          requirements += `- Operation ID: ${operation.operationId || "No ID"}\n`;
+          requirements += `- Summary: ${operation.summary || 'No summary'}\n`;
+          requirements += `- Operation ID: ${operation.operationId || 'No ID'}\n`;
 
           if (operation.parameters && operation.parameters.length > 0) {
             requirements += `- Parameters:\n`;
             for (const param of operation.parameters) {
-              requirements += `  - ${param.name} (${param.in}): ${param.description || "No description"} - Required: ${
-                param.required ? "Yes" : "No"
+              requirements += `  - ${param.name} (${param.in}): ${param.description || 'No description'} - Required: ${
+                param.required ? 'Yes' : 'No'
               }\n`;
             }
           }
 
           if (operation.requestBody) {
-            requirements += `- Request Body: Required - ${operation.requestBody.required ? "Yes" : "No"}\n`;
+            requirements += `- Request Body: Required - ${operation.requestBody.required ? 'Yes' : 'No'}\n`;
             const content = operation.requestBody.content || {};
             for (const mediaType in content) {
               requirements += `  - Media Type: ${mediaType}\n`;
@@ -255,8 +326,8 @@ export class ApiTestingService {
           if (operation.responses) {
             requirements += `- Responses:\n`;
             for (const statusCode in operation.responses) {
-              const response = operation.responses[statusCode];
-              requirements += `  - ${statusCode}: ${response.description || "No description"}\n`;
+              const response = operation.responses[statusCode] || {};
+              requirements += `  - ${statusCode}: ${response.description || 'No description'}\n`;
             }
           }
 
@@ -274,8 +345,8 @@ export class ApiTestingService {
 
       return requirements;
     } catch (error) {
-      console.error("Error building requirements from spec:", error);
-      return `API Test Requirements for ${spec.info?.title || "Unknown API"}`;
+      console.error('Error building requirements from spec:', error);
+      return `API Test Requirements for ${spec.info?.title || 'Unknown API'}`;
     }
   }
 
@@ -285,7 +356,7 @@ export class ApiTestingService {
    * @param format 规范格式
    * @returns 测试套件ID
    */
-  async generateTestsFromSpec(specPath: string, format: ApiDocFormat = "auto"): Promise<string> {
+  async generateTestsFromSpec(specPath: string, format: ApiDocFormat = 'auto'): Promise<string> {
     try {
       // 检查文件是否存在
       if (!fs.existsSync(specPath)) {
@@ -293,10 +364,10 @@ export class ApiTestingService {
       }
 
       // 读取规范文件
-      const fileContent = fs.readFileSync(specPath, "utf-8");
+      const fileContent = fs.readFileSync(specPath, 'utf-8');
 
       // 检测格式（如果是auto）
-      if (format === "auto") {
+      if (format === 'auto') {
         format = this.detectFormat(fileContent);
       }
 
@@ -321,15 +392,18 @@ export class ApiTestingService {
       };
 
       // 保存测试套件
-      const testSuitesDir = path.join(process.cwd(), "test-suites");
+      const testSuitesDir = path.join(process.cwd(), 'test-suites');
       if (!fs.existsSync(testSuitesDir)) {
         fs.mkdirSync(testSuitesDir, { recursive: true });
       }
-      fs.writeFileSync(path.join(testSuitesDir, `${testSuiteId}.json`), JSON.stringify(testSuite, null, 2));
+      fs.writeFileSync(
+        path.join(testSuitesDir, `${testSuiteId}.json`),
+        JSON.stringify(testSuite, null, 2)
+      );
 
       return testSuiteId;
     } catch (error) {
-      console.error("Error generating API test cases:", error);
+      console.error('Error generating API test cases:', error);
       throw new Error(`Failed to generate API test cases: ${(error as Error).message}`);
     }
   }
@@ -342,17 +416,17 @@ export class ApiTestingService {
   async runApiTests(testSuiteId: string): Promise<string> {
     try {
       // 加载测试套件
-      const testSuitePath = path.join(process.cwd(), "test-suites", `${testSuiteId}.json`);
+      const testSuitePath = path.join(process.cwd(), 'test-suites', `${testSuiteId}.json`);
 
       if (!fs.existsSync(testSuitePath)) {
         throw new Error(`Test suite not found: ${testSuiteId}`);
       }
 
-      const testSuiteContent = fs.readFileSync(testSuitePath, "utf-8");
+      const testSuiteContent = fs.readFileSync(testSuitePath, 'utf-8');
       const testSuite = JSON.parse(testSuiteContent) as core.TestSuite;
 
       // 验证是否为API测试套件
-      if (!testSuite.description.includes("API")) {
+      if (!testSuite.description.includes('API')) {
         throw new Error(`Test suite is not an API test suite: ${testSuiteId}`);
       }
 
@@ -368,57 +442,59 @@ export class ApiTestingService {
 
         for (const step of testCase.steps) {
           // 跳过非API请求步骤
-          if (step.action !== "request") {
+          if (step.action !== 'request') {
             continue;
           }
 
           const testStartTime = Date.now();
           let passed = true;
           let status = 0;
-          let statusText = "";
-          let requestPayload = null;
-          let responseBody: any = null;
+          let statusText = '';
+          let requestPayload: unknown = null;
+          let responseBody: unknown = null;
           const errors: Error[] = [];
 
           try {
             // 解析测试数据
-            const requestData = JSON.parse(step.value || "{}");
-            const endpoint = step.selector || "";
-            const method = requestData.method || "GET";
+            const requestData = JSON.parse(step.value || '{}') as ApiRequestData;
+            const endpoint = step.selector || '';
+            const method = requestData.method || 'GET';
 
             // 构建完整URL（使用baseApiUrl）
-            const url = endpoint.startsWith("http") ? endpoint : `${this.baseApiUrl}${endpoint}`;
+            const url = endpoint.startsWith('http') ? endpoint : `${this.baseApiUrl}${endpoint}`;
 
             // 检查是否有模拟响应
             const mockKey = `${method}:${endpoint}`;
             if (this.mockEndpoints.has(mockKey)) {
               // 使用模拟响应
-              const mockResponse = this.mockEndpoints.get(mockKey);
+              const mockResponse = this.mockEndpoints.get(mockKey) as ApiMockResponse;
 
               status = mockResponse.statusCode;
-              statusText = mockResponse.statusText || "OK";
+              statusText = mockResponse.statusText || 'OK';
               responseBody = mockResponse.response;
-              requestPayload = requestData.body;
+              requestPayload = requestData.body || null;
 
               // 验证状态码
               if (requestData.expectedStatus && requestData.expectedStatus !== status) {
                 passed = false;
-                errors.push(new Error(`Expected status ${requestData.expectedStatus}, got ${status}`));
+                errors.push(
+                  new Error(`Expected status ${requestData.expectedStatus}, got ${status}`)
+                );
               }
             } else {
               // 执行实际请求
               const response = await fetch(url, {
                 method,
                 headers: {
-                  "Content-Type": "application/json",
-                  ...requestData.headers,
+                  'Content-Type': 'application/json',
+                  ...(requestData.headers || {}),
                 },
                 body: requestData.body ? JSON.stringify(requestData.body) : undefined,
               });
 
               status = response.status;
               statusText = response.statusText;
-              requestPayload = requestData.body;
+              requestPayload = requestData.body || null;
 
               // 尝试解析响应体
               try {
@@ -432,7 +508,9 @@ export class ApiTestingService {
               // 验证状态码
               if (requestData.expectedStatus && requestData.expectedStatus !== status) {
                 passed = false;
-                errors.push(new Error(`Expected status ${requestData.expectedStatus}, got ${status}`));
+                errors.push(
+                  new Error(`Expected status ${requestData.expectedStatus}, got ${status}`)
+                );
               }
 
               // 验证响应体（如果提供了期望的响应）
@@ -441,7 +519,7 @@ export class ApiTestingService {
                 // 目前只是简单检查响应体是否存在
                 if (!responseBody) {
                   passed = false;
-                  errors.push(new Error("Expected response body, but got empty response"));
+                  errors.push(new Error('Expected response body, but got empty response'));
                 }
               }
             }
@@ -458,8 +536,9 @@ export class ApiTestingService {
           results.push({
             testCaseId: testCase.id,
             passed,
-            endpoint: step.selector || "",
-            method: JSON.parse(step.value || '{"method":"GET"}').method,
+            endpoint: step.selector || '',
+            method:
+              (JSON.parse(step.value || '{"method":"GET"}') as ApiRequestData).method || 'GET',
             status,
             statusText,
             requestPayload,
@@ -472,7 +551,7 @@ export class ApiTestingService {
 
       // 计算总体结果
       const endTime = new Date();
-      const allPassed = results.every((result) => result.passed);
+      const allPassed = results.every(result => result.passed);
 
       // 创建测试结果
       const apiTestResult: ApiTestResult = {
@@ -491,7 +570,7 @@ export class ApiTestingService {
 
       return resultId;
     } catch (error) {
-      console.error("Error running API tests:", error);
+      console.error('Error running API tests:', error);
       throw new Error(`Failed to run API tests: ${(error as Error).message}`);
     }
   }
@@ -501,7 +580,7 @@ export class ApiTestingService {
    * @param reportId 报告ID
    * @returns 测试报告
    */
-  async getReport(reportId: string): Promise<ApiTestResult> {
+  getReport(reportId: string): ApiTestResult {
     const report = this.testResults.get(reportId);
     if (!report) {
       throw new Error(`Test report not found: ${reportId}`);
@@ -516,21 +595,16 @@ export class ApiTestingService {
    * @param statusCode 状态码
    * @param response 响应数据
    */
-  async mockApiEndpoint(endpoint: string, method: string, statusCode: number, response: any): Promise<void> {
-    try {
-      const key = `${method}:${endpoint}`;
+  mockApiEndpoint(endpoint: string, method: string, statusCode: number, response: unknown): void {
+    const key = `${method}:${endpoint}`;
 
-      this.mockEndpoints.set(key, {
-        statusCode,
-        statusText: this.getStatusText(statusCode),
-        response,
-      });
+    this.mockEndpoints.set(key, {
+      statusCode,
+      statusText: this.getStatusText(statusCode),
+      response,
+    });
 
-      console.log(`Mocked API endpoint: ${method} ${endpoint}`);
-    } catch (error) {
-      console.error("Error mocking API endpoint:", error);
-      throw new Error(`Failed to mock API endpoint: ${(error as Error).message}`);
-    }
+    console.log(`Mocked API endpoint: ${method} ${endpoint}`);
   }
 
   /**
@@ -538,7 +612,7 @@ export class ApiTestingService {
    * @param specId 规范ID
    * @returns API规范
    */
-  async getApiSpec(specId: string): Promise<ApiSpec> {
+  getApiSpec(specId: string): ApiSpec {
     const apiSpec = this.apiSpecs.get(specId);
     if (!apiSpec) {
       throw new Error(`API specification not found: ${specId}`);
@@ -553,24 +627,24 @@ export class ApiTestingService {
    */
   private detectFormat(content: string): ApiDocFormat {
     try {
-      const json = JSON.parse(content);
+      const json = JSON.parse(content) as OpenAPISpec;
 
       // 检查是否是OpenAPI/Swagger
       if (json.openapi || json.swagger) {
-        return json.openapi ? "openapi" : "swagger";
+        return json.openapi ? 'openapi' : 'swagger';
       }
 
       // 检查是否是Apifox
       if (json.apifoxExtensions) {
-        return "apifox";
+        return 'apifox';
       }
 
       // 默认返回OpenAPI
-      return "openapi";
+      return 'openapi';
     } catch (error) {
       // 如果不是有效的JSON，假设为其他格式
-      console.warn("Could not determine API specification format:", error);
-      return "openapi";
+      console.warn('Could not determine API specification format:', error);
+      return 'openapi';
     }
   }
 
@@ -589,7 +663,7 @@ export class ApiTestingService {
 API文档格式: ${format}
 
 文档内容:
-${content.substring(0, 20000)} ${content.length > 20000 ? "... (截断)" : ""}
+${content.substring(0, 20000)} ${content.length > 20000 ? '... (截断)' : ''}
 
 请使用以下JSON格式输出:
 {
@@ -611,30 +685,30 @@ ${content.substring(0, 20000)} ${content.length > 20000 ? "... (截断)" : ""}
 }
 `;
 
-      let parsedSpec: any;
+      let parsedSpec: Record<string, unknown>;
 
       // 使用MCP客户端或备用方法解析API规范
       if (this.mcpEnabled && this.mcpClient) {
-        console.log("使用MCP客户端解析API规范");
+        console.log('使用MCP客户端解析API规范');
 
         // 使用MCP客户端调用LLM
         const result = await this.mcpClient.callTool({
-          name: "generate-json-content",
+          name: 'generate-json-content',
           arguments: {
             prompt: prompt,
             systemPrompt:
-              "你是一个擅长解析API文档的专家，请将API规范文档解析为结构化的JSON对象。只返回JSON格式的数据，不要有其他解释或标记。",
+              '你是一个擅长解析API文档的专家，请将API规范文档解析为结构化的JSON对象。只返回JSON格式的数据，不要有其他解释或标记。',
           },
         });
 
         if (result.content && result.content.length > 0) {
-          const jsonText = result.content[0].text.replace(/```json\s*|\s*```/g, "");
-          parsedSpec = JSON.parse(jsonText);
+          const jsonText = (result.content[0].text || '').replace(/```json\s*|\s*```/g, '');
+          parsedSpec = JSON.parse(jsonText) as Record<string, unknown>;
         } else {
-          throw new Error("Failed to parse API specification using MCP client");
+          throw new Error('Failed to parse API specification using MCP client');
         }
       } else {
-        console.log("MCP客户端未配置，使用备用方法解析API规范");
+        console.log('MCP客户端未配置，使用备用方法解析API规范');
 
         // 备用：使用简单的解析逻辑
         parsedSpec = this.generateFallbackApiSpec(content, format);
@@ -643,21 +717,21 @@ ${content.substring(0, 20000)} ${content.length > 20000 ? "... (截断)" : ""}
       // 创建API规范
       const apiSpec: ApiSpec = {
         id: randomUUID(),
-        title: parsedSpec.title || "Unknown API",
-        version: parsedSpec.version || "1.0.0",
-        description: parsedSpec.description,
-        endpoints: parsedSpec.endpoints || [],
+        title: (parsedSpec.title as string) || 'Unknown API',
+        version: (parsedSpec.version as string) || '1.0.0',
+        description: parsedSpec.description as string | undefined,
+        endpoints: (parsedSpec.endpoints as ApiEndpoint[]) || [],
       };
 
       return apiSpec;
     } catch (error) {
-      console.error("Error parsing API specification:", error);
+      console.error('Error parsing API specification:', error);
       // 出错时返回一个简单的API规范
       return {
         id: randomUUID(),
-        title: "Failed to Parse API",
-        version: "1.0.0",
-        description: "Failed to parse API specification",
+        title: 'Failed to Parse API',
+        version: '1.0.0',
+        description: 'Failed to parse API specification',
         endpoints: [],
       };
     }
@@ -678,19 +752,19 @@ ${content.substring(0, 20000)} ${content.length > 20000 ? "... (截断)" : ""}
 API规范:
 Title: ${apiSpec.title}
 Version: ${apiSpec.version}
-Description: ${apiSpec.description || "N/A"}
+Description: ${apiSpec.description || 'N/A'}
 
 端点列表:
 ${apiSpec.endpoints
   .map(
-    (endpoint) => `
+    endpoint => `
 路径: ${endpoint.path}
 方法: ${endpoint.method}
 摘要: ${endpoint.summary}
-描述: ${endpoint.description || "N/A"}
+描述: ${endpoint.description || 'N/A'}
 `
   )
-  .join("\n")}
+  .join('\n')}
 
 请使用以下JSON格式生成测试用例:
 [
@@ -704,7 +778,7 @@ ${apiSpec.endpoints
         "description": "步骤描述",
         "action": "request",
         "selector": "API路径",
-        "value": "{ \"method\": \"GET/POST/PUT/DELETE\", \"headers\": {}, \"body\": {}, \"expectedStatus\": 200, \"expectedResponse\": {} }"
+        "value": '{ "method": "GET/POST/PUT/DELETE", "headers": {}, "body": {}, "expectedStatus": 200, "expectedResponse": {} }'
       }
     ]
   }
@@ -718,26 +792,26 @@ ${apiSpec.endpoints
 
       // 使用MCP客户端或备用方法生成测试用例
       if (this.mcpEnabled && this.mcpClient) {
-        console.log("使用MCP客户端生成API测试用例");
+        console.log('使用MCP客户端生成API测试用例');
 
         // 使用MCP客户端调用LLM
         const result = await this.mcpClient.callTool({
-          name: "generate-json-content",
+          name: 'generate-json-content',
           arguments: {
             prompt: prompt,
             systemPrompt:
-              "你是一个专业的API测试专家，擅长根据API规范生成测试用例。请只返回JSON格式的响应，不要添加任何额外的解释或Markdown格式。",
+              '你是一个专业的API测试专家，擅长根据API规范生成测试用例。请只返回JSON格式的响应，不要添加任何额外的解释或Markdown格式。',
           },
         });
 
         if (result.content && result.content.length > 0) {
-          const jsonText = result.content[0].text.replace(/```json\s*|\s*```/g, "");
-          testCases = JSON.parse(jsonText);
+          const jsonText = (result.content[0].text || '').replace(/```json\s*|\s*```/g, '');
+          testCases = JSON.parse(jsonText) as core.TestCase[];
         } else {
-          throw new Error("Failed to generate test cases using MCP client");
+          throw new Error('Failed to generate test cases using MCP client');
         }
       } else {
-        console.log("MCP客户端未配置，使用备用方法生成API测试用例");
+        console.log('MCP客户端未配置，使用备用方法生成API测试用例');
 
         // 备用：生成简单的测试用例
         testCases = this.generateFallbackTestCases(apiSpec);
@@ -745,21 +819,21 @@ ${apiSpec.endpoints
 
       return testCases;
     } catch (error) {
-      console.error("Error generating test cases from API spec:", error);
+      console.error('Error generating test cases from API spec:', error);
       // 出错时返回一个简单的测试用例
       return [
         {
           id: randomUUID(),
-          name: "Default API Test Case",
-          description: "Default API test case (LLM generation failed)",
+          name: 'Default API Test Case',
+          description: 'Default API test case (LLM generation failed)',
           steps: [
             {
               id: randomUUID(),
-              description: "Simple GET request",
-              action: "request",
-              selector: "https://example.com/api",
+              description: 'Simple GET request',
+              action: 'request',
+              selector: 'https://example.com/api',
               value: JSON.stringify({
-                method: "GET",
+                method: 'GET',
                 headers: {},
                 expectedStatus: 200,
               }),
@@ -773,15 +847,15 @@ ${apiSpec.endpoints
   /**
    * 生成备用API规范（当MCP客户端不可用时）
    */
-  private generateFallbackApiSpec(content: string, _format: ApiDocFormat): any {
+  private generateFallbackApiSpec(content: string, _format: ApiDocFormat): Record<string, unknown> {
     try {
       // 尝试解析JSON
-      const parsed = JSON.parse(content);
+      const parsed = JSON.parse(content) as OpenAPISpec;
 
       // 简单提取API信息
-      const title = parsed.info?.title || parsed.title || "Unknown API";
-      const version = parsed.info?.version || parsed.version || "1.0.0";
-      const description = parsed.info?.description || parsed.description || "";
+      const title = parsed.info?.title || parsed.title || 'Unknown API';
+      const version = parsed.info?.version || parsed.version || '1.0.0';
+      const description = parsed.info?.description || parsed.description || '';
 
       // 提取端点
       const endpoints: ApiEndpoint[] = [];
@@ -789,17 +863,17 @@ ${apiSpec.endpoints
       // 处理OpenAPI/Swagger格式
       if (parsed.paths) {
         for (const path in parsed.paths) {
-          const pathData = parsed.paths[path];
+          const pathData = parsed.paths[path] || {};
 
           for (const method in pathData) {
-            if (["get", "post", "put", "delete", "patch"].includes(method.toLowerCase())) {
+            if (['get', 'post', 'put', 'delete', 'patch'].includes(method.toLowerCase())) {
               const operation = pathData[method];
 
               endpoints.push({
                 path: path,
                 method: method.toUpperCase(),
-                summary: operation.summary || `${method.toUpperCase()} ${path}`,
-                description: operation.description || "",
+                summary: operation?.summary || `${method.toUpperCase()} ${path}`,
+                description: operation?.description || '',
               });
             }
           }
@@ -813,13 +887,13 @@ ${apiSpec.endpoints
         endpoints,
       };
     } catch (error) {
-      console.warn("Error parsing API spec content:", error);
+      console.warn('Error parsing API spec content:', error);
 
       // 返回一个最小的API规范
       return {
-        title: "Unknown API",
-        version: "1.0.0",
-        description: "Failed to parse API specification",
+        title: 'Unknown API',
+        version: '1.0.0',
+        description: 'Failed to parse API specification',
         endpoints: [],
       };
     }
@@ -841,13 +915,13 @@ ${apiSpec.endpoints
           {
             id: randomUUID(),
             description: `发送 ${endpoint.method} 请求到 ${endpoint.path}`,
-            action: "request",
+            action: 'request',
             selector: `https://api.example.com${endpoint.path}`,
             value: JSON.stringify({
               method: endpoint.method,
               headers: {
-                "Content-Type": "application/json",
-                Accept: "application/json",
+                'Content-Type': 'application/json',
+                Accept: 'application/json',
               },
               expectedStatus: 200,
             }),
@@ -862,18 +936,18 @@ ${apiSpec.endpoints
     if (testCases.length === 0) {
       testCases.push({
         id: randomUUID(),
-        name: "Default API Test",
-        description: "Default API test for empty specification",
+        name: 'Default API Test',
+        description: 'Default API test for empty specification',
         steps: [
           {
             id: randomUUID(),
-            description: "Simple GET request to default endpoint",
-            action: "request",
-            selector: "https://api.example.com/",
+            description: 'Simple GET request to default endpoint',
+            action: 'request',
+            selector: 'https://api.example.com/',
             value: JSON.stringify({
-              method: "GET",
+              method: 'GET',
               headers: {
-                Accept: "application/json",
+                Accept: 'application/json',
               },
               expectedStatus: 200,
             }),
@@ -892,20 +966,20 @@ ${apiSpec.endpoints
    */
   private getStatusText(statusCode: number): string {
     const statusTexts: Record<number, string> = {
-      200: "OK",
-      201: "Created",
-      202: "Accepted",
-      204: "No Content",
-      400: "Bad Request",
-      401: "Unauthorized",
-      403: "Forbidden",
-      404: "Not Found",
-      405: "Method Not Allowed",
-      409: "Conflict",
-      500: "Internal Server Error",
+      200: 'OK',
+      201: 'Created',
+      202: 'Accepted',
+      204: 'No Content',
+      400: 'Bad Request',
+      401: 'Unauthorized',
+      403: 'Forbidden',
+      404: 'Not Found',
+      405: 'Method Not Allowed',
+      409: 'Conflict',
+      500: 'Internal Server Error',
     };
 
-    return statusTexts[statusCode] || "Unknown";
+    return statusTexts[statusCode] || 'Unknown';
   }
 
   /**
@@ -934,10 +1008,10 @@ ${apiSpec.endpoints
       const files = fs.readdirSync(this.storageDir);
 
       for (const file of files) {
-        if (file.startsWith("api_spec_") && file.endsWith(".json")) {
+        if (file.startsWith('api_spec_') && file.endsWith('.json')) {
           try {
             const filePath = path.join(this.storageDir, file);
-            const fileContent = fs.readFileSync(filePath, "utf-8");
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
             const apiSpec = JSON.parse(fileContent) as ApiSpec;
             this.apiSpecs.set(apiSpec.id, apiSpec);
           } catch (error) {
@@ -946,7 +1020,7 @@ ${apiSpec.endpoints
         }
       }
     } catch (error) {
-      console.warn("Error loading API specs:", error);
+      console.warn('Error loading API specs:', error);
       // 继续执行，即使加载失败
     }
   }
@@ -959,10 +1033,10 @@ ${apiSpec.endpoints
       const files = fs.readdirSync(this.storageDir);
 
       for (const file of files) {
-        if (file.startsWith("api_result_") && file.endsWith(".json")) {
+        if (file.startsWith('api_result_') && file.endsWith('.json')) {
           try {
             const filePath = path.join(this.storageDir, file);
-            const fileContent = fs.readFileSync(filePath, "utf-8");
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
             const testResult = JSON.parse(fileContent) as ApiTestResult;
             this.testResults.set(testResult.id, testResult);
           } catch (error) {
@@ -971,7 +1045,7 @@ ${apiSpec.endpoints
         }
       }
     } catch (error) {
-      console.warn("Error loading API test results:", error);
+      console.warn('Error loading API test results:', error);
       // 继续执行，即使加载失败
     }
   }

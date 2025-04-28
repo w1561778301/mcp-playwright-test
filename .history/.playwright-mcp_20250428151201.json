@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "mcp-server-alipay": {
+      "command": "npx",
+      "args": ["-y", "mcp-playwright-test"],
+      "env": {
+        "CODE_PATH": ".",
+				"GIT"
+      }
+    }
+  }
+}

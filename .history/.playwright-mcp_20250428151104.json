@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "mcp-server-alipay": {
+      "command": "npx",
+      "args": ["-y", "mcp-playwright-test"],
+      "env": {
+        "AP_APP_ID": "2014...222",
+        "AP_APP_KEY": "MIIE...DZdM=",
+        "AP_PUB_KEY": "MIIB...DAQAB",
+        "AP_RETURN_URL": "https://success-page",
+        "AP_NOTIFY_URL": "https://your-own-server",
+        "...其他参数": "...其他值"
+      }
+    },
+    "其他工具": {
+      "...": "..."
+    }
+  }
+}

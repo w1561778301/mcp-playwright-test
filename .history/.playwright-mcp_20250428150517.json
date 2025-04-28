@@ -1,0 +1,30 @@
+{
+  "repositories": {
+    "default": ".",
+    "current": "${process.cwd()}"
+  },
+  "apiDocs": {
+    "default": "./docs/api.yaml",
+    "v1": "./docs/api-v1.yaml"
+  },
+  "testPaths": {
+    "ui": "./tests/ui",
+    "api": "./tests/api"
+  },
+  "browsers": {
+    "default": "chromium",
+    "options": {
+      "headless": true,
+      "slowMo": 50,
+      "viewport": {
+        "width": 1280,
+        "height": 720
+      }
+    }
+  },
+  "reporting": {
+    "outputDir": "./test-results",
+    "screenshots": true,
+    "video": false
+  }
+}

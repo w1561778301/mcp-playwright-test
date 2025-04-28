@@ -32,7 +32,7 @@
     "ai",
     "test-generation"
   ],
-  "author": "",
+  "author": "owen.wang",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",

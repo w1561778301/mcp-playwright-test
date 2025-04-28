@@ -54,7 +54,7 @@ MCP Playwright Test 支持通过`.playwright-mcp.json`文件进行配置，特�
 ```json
 {
   "mcpServers": {
-    "mcp-server-alipay": {
+    "mcp-playwright-test": {
       "command": "npx",
       "args": ["-y", "mcp-playwright-test"],
       "env": {

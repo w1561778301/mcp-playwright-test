@@ -10,6 +10,8 @@
 - 执行 UI 和 API 测试并生成详细报告
 - 捕获并分析网络请求和控制台日志
 
+[mcphub](https://mcphub.com/mcp-servers/w1561778301/mcp-playwright-test)
+
 ## 快速开始
 
 ### 安装
